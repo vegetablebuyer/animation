@@ -54,21 +54,17 @@ class Robot(object):
         return play1, play2
 
     def walk(self):
-        down = True
-        for _ in range(6):
-            if down:
-                down = False
+        for i in range(6):
+            if i % 2 == 0:
                 yield [self.left_leg.animate.shift(DOWN * 0.1 + LEFT * 0.1),
                        self.right_leg.animate.shift(DOWN * 0.1 + RIGHT * 0.1)]
             else:
-                down = True
                 yield [self.left_leg.animate.shift(UP * 0.1 + RIGHT * 0.1),
                        self.right_leg.animate.shift(UP * 0.1 + LEFT * 0.1)]
 
 
 class CartoonCharacter(Scene):
     def construct(self):
-
         main_role = Robot()
         # role enter the scene
         self.play(FadeIn(main_role.it()))

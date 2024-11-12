@@ -1,0 +1,11 @@
+__pypackages__/
+__pycache__/
+.idea/
+
+.cache/
+media/
+
+.venv
+env/
+venv/
+ENV/

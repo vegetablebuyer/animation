@@ -21,7 +21,7 @@ class Robot(object):
             self.head.get_center() + DOWN * 0.2)
         self.smile_mouth = Arc(radius=0.4, start_angle=-PI * 2 / 3, angle=PI / 2, color=BLACK)
 
-        self.body = Rectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7).move_to(
+        self.body = RoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7, corner_radius=0.3).move_to(
             self.head.get_center() + DOWN * (self.head_radius + self.body_height/2 + 0.05))
 
         self.left_arm = Line(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)

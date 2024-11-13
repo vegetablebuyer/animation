@@ -1,4 +1,58 @@
 from manim import *
+from manim.typing import Point3D
+import numpy as np
+
+
+class Limb(Line):
+
+    def __init__(self, start: Point3D, end: Point3D, **kwargs):
+        super().__init__(start=start, end=end, **kwargs)
+        self.start_angle = np.arctan2(end[1] - start[1], end[0] - start[0])
+        if -PI/2 <= self.start_angle <= PI/2:
+            self.end_angle = PI - self.start_angle
+        else:
+            self.end_angle = -PI - self.start_angle
+        self.add = True
+        self.need = True
+
+    def wave(self, obj, dt):
+        print("xxxx", self.add)
+        step = 0.05
+        start = obj.get_start()
+        end = obj.get_end()
+        angle = np.arctan2(end[1] - start[1], end[0] - start[0])
+        if 0 <= self.start_angle < np.pi / 2 or -np.pi <= self.start_angle < -np.pi / 2:
+            # first quadrant and third quadrant
+            if angle <= self.start_angle:
+                self.add = True
+                obj.rotate(step, about_point=obj.get_start())
+                return
+            elif angle >= self.end_angle:
+                self.add = False
+                obj.rotate(-step, about_point=obj.get_start())
+                return
+        elif np.pi / 2 <= self.start_angle < np.pi or -np.pi / 2 <= self.start_angle < 0:
+            # second quadrant and fourth quadrant
+            if angle >= self.start_angle:
+                self.add = False
+                obj.rotate(-step, about_point=obj.get_start())
+                return
+            elif angle <= self.end_angle:
+                self.add = True
+                obj.rotate(step, about_point=obj.get_start())
+                return
+
+        if self.add:
+            obj.rotate(step, about_point=obj.get_start())
+        elif not self.add:
+            obj.rotate(-step, about_point=obj.get_start())
+
+
+    def walk(self):
+        self.add_updater(self.wave)
+
+    def stop_walk(self):
+        self.remove_updater(self.wave)
 
 
 class Robot(object):
@@ -8,7 +62,7 @@ class Robot(object):
         self.pupil_radius = 0.07
         self.body_height = 1.5
         self.body_width = 0.6
-        self.head = Circle(radius=self.head_radius, color=BLUE, fill_opacity=0.7)
+        self.head = Circle(radius=self.head_radius, color=GREEN, fill_opacity=0.7)
         self.left_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
             self.head.get_center() + LEFT * 0.4 + UP * 0.4)
         self.right_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
@@ -24,10 +78,10 @@ class Robot(object):
         self.body = RoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7, corner_radius=0.3).move_to(
             self.head.get_center() + DOWN * (self.head_radius + self.body_height/2 + 0.05))
 
-        self.left_arm = Line(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
-        self.right_arm = Line(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
-        self.left_leg = Line(start=DOWN * 2.5, end=LEFT * 0.5 + DOWN * 3.5, color=BLUE)
-        self.right_leg = Line(start=DOWN * 2.5, end=RIGHT * 0.5 + DOWN * 3.5, color=BLUE)
+        self.left_arm = Limb(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
+        self.right_arm = Limb(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
+        self.left_leg = Limb(start=DOWN * 2.5, end=LEFT * 0.5 + DOWN * 3.5, color=BLUE)
+        self.right_leg = Limb(start=DOWN * 2.5, end=RIGHT * 0.5 + DOWN * 3.5, color=BLUE)
 
         self.me = VGroup(self.head, self.left_eye, self.right_eye, self.left_pupil, self.right_pupil, self.mouth,
                          self.body, self.left_arm, self.right_arm, self.left_leg, self.right_leg)
@@ -40,7 +94,7 @@ class Robot(object):
         return Transform(self.mouth, self.smile_mouth, run_time=2)
 
     def move_to_center(self):
-        return self.me.animate.shift(RIGHT * 2)
+        return self.me.animate.move_to(ORIGIN)
 
     def jump_up(self):
         return self.me.animate.shift(UP * 0.5)
@@ -53,34 +107,38 @@ class Robot(object):
         play2 = Rotate(self.right_pupil, angle=2 * TAU, about_point=self.right_eye.get_center(), run_time=4)
         return play1, play2
 
+
     def walk(self):
-        for i in range(6):
-            if i % 2 == 0:
-                yield [self.left_leg.animate.shift(DOWN * 0.1 + LEFT * 0.1),
-                       self.right_leg.animate.shift(DOWN * 0.1 + RIGHT * 0.1)]
-            else:
-                yield [self.left_leg.animate.shift(UP * 0.1 + RIGHT * 0.1),
-                       self.right_leg.animate.shift(UP * 0.1 + LEFT * 0.1)]
+        self.left_leg.walk()
+        self.right_leg.walk()
+
+    def stop_walk(self):
+        self.left_leg.stop_walk()
+        self.right_leg.stop_walk()
 
 
 class CartoonCharacter(Scene):
     def construct(self):
+        screen_width = config.frame_width
+        screen_height = config.frame_height
+
         main_role = Robot()
         # role enter the scene
+        main_role.it().move_to(ORIGIN + RIGHT * (screen_width / 2))
+
         self.play(FadeIn(main_role.it()))
 
-        # move the role to the center of the scene
-        self.play(main_role.move_to_center(), run_time=2)
+        # make the role walk to the center of the scene
+        main_role.walk()
+        self.play(main_role.move_to_center(), run_time=5)
 
-        # role smile and rotate the eye ball
+        main_role.stop_walk()
+
+        # role smile and rotate the eyeball
         self.play(main_role.rotate_eye_pupil(), main_role.smile())
-
         # role jump
         self.play(main_role.jump_up(), run_time=0.5)
         self.play(main_role.jump_down(), run_time=0.5)
 
-        # role walk
-        for animations in main_role.walk():
-            self.play(animations, run_time=0.2)
         # role exit the scene
         self.play(FadeOut(main_role.it()))

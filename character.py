@@ -8,16 +8,16 @@ class Limb(Line):
     def __init__(self, start: Point3D, end: Point3D, **kwargs):
         super().__init__(start=start, end=end, **kwargs)
         self.start_angle = np.arctan2(end[1] - start[1], end[0] - start[0])
-        if -PI/2 <= self.start_angle <= PI/2:
-            self.end_angle = PI - self.start_angle
+        # if -np.pi/2 <= self.start_angle <= np.pi/2:
+        if self.start_angle >= 0:
+            self.end_angle = np.pi - self.start_angle
         else:
-            self.end_angle = -PI - self.start_angle
+            self.end_angle = -(np.pi - abs(self.start_angle))
         self.add = True
         self.need = True
 
     def wave(self, obj, dt):
-        print("xxxx", self.add)
-        step = 0.05
+        step = np.pi / 40
         start = obj.get_start()
         end = obj.get_end()
         angle = np.arctan2(end[1] - start[1], end[0] - start[0])
@@ -62,7 +62,7 @@ class Robot(object):
         self.pupil_radius = 0.07
         self.body_height = 1.5
         self.body_width = 0.6
-        self.head = Circle(radius=self.head_radius, color=GREEN, fill_opacity=0.7)
+        self.head = Circle(radius=self.head_radius, color=BLUE, fill_opacity=0.7)
         self.left_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
             self.head.get_center() + LEFT * 0.4 + UP * 0.4)
         self.right_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(

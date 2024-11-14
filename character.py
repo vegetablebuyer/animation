@@ -51,7 +51,7 @@ class Limb(Line):
         elif not self.add:
             obj.rotate(-step, about_point=obj.get_start())
 
-    def walk_left(self, obj, dt):
+    def walk(self, obj, dt):
         step = np.pi * dt/3
         start = obj.get_start()
         end = obj.get_end()
@@ -64,12 +64,12 @@ class Limb(Line):
         else:
             obj.rotate(-step, about_point=obj.get_start())
 
-    def start_walk_left(self):
-        self.add_updater(self.walk_left)
+    def start_walk(self):
+        self.add_updater(self.walk)
 
-    def stop_walk_left(self):
-        self.remove_updater(self.walk_left)
-        # self.set_straight()
+    def stop_walk(self):
+        self.remove_updater(self.walk)
+        self.set_straight()
 
     def start_wave(self):
         self.add_updater(self.wave)
@@ -142,7 +142,7 @@ class Robot(object):
         play2 = Rotate(self.right_pupil, angle=2 * TAU, about_point=self.right_eye.get_center(), run_time=4)
         return play1, play2
 
-    def body_walk_move(self, obj, dt):
+    def body_walk_move_left(self, obj, dt):
         angle = np.pi * dt/3
         a = self.leg_length * np.sin(angle)
         obj.shift(LEFT * a)
@@ -152,22 +152,49 @@ class Robot(object):
         else:
             obj.move_to(obj.get_center() + DOWN * drop[1])
 
-    def walk(self):
-        self.left_leg.start_walk_left()
-        self.right_leg.start_walk_left()
-        self.it().add_updater(self.body_walk_move)
+    def body_walk_move_right(self, obj, dt):
+        angle = np.pi * dt/3
+        a = self.leg_length * np.sin(angle)
+        obj.shift(RIGHT * a)
+        drop = obj.get_bottom() - self.ground_height
+        if drop[1] >0:
+            obj.move_to(obj.get_center()+ DOWN * drop[1])
+        else:
+            obj.move_to(obj.get_center() + DOWN * drop[1])
 
-    def stop_walk(self):
-        self.left_leg.stop_walk_left()
-        self.right_leg.stop_walk_left()
-        self.left_leg.set_straight()
-        self.right_leg.set_straight()
-        self.it().remove_updater(self.body_walk_move)
+    def stand_on_ground(self):
+        drop = self.me.get_bottom() - self.ground_height
+        if drop[1] > 0:
+            self.me.move_to(self.me.get_center() + DOWN * drop[1])
+        else:
+            self.me.move_to(self.me.get_center() + DOWN * drop[1])
+
+    def walk_left(self):
+        self.left_leg.start_walk()
+        self.right_leg.start_walk()
+        self.me.add_updater(self.body_walk_move_left)
+
+    def walk_right(self):
+        self.left_leg.start_walk()
+        self.right_leg.start_walk()
+        self.me.add_updater(self.body_walk_move_right)
+
+    def stop_walk_left(self):
+        self.left_leg.stop_walk()
+        self.right_leg.stop_walk()
+        self.me.remove_updater(self.body_walk_move_left)
+        self.stand_on_ground()
+
+    def stop_walk_right(self):
+        self.left_leg.stop_walk()
+        self.right_leg.stop_walk()
+        self.me.remove_updater(self.body_walk_move_right)
+        self.stand_on_ground()
+
 
 class CartoonCharacter(Scene):
     def construct(self):
         screen_width = config.frame_width
-        screen_height = config.frame_height
         ground_line = Line(start=LEFT * (screen_width / 2), end=RIGHT * (screen_width / 2), color=GREY)
         ground_line.set_stroke(width=6)
         ground_line.shift(DOWN * 3)
@@ -181,10 +208,13 @@ class CartoonCharacter(Scene):
         self.play(FadeIn(body))
 
         # make the role walk to the center of the scene
-        main_role.walk()
-        # self.play(main_role.move_to_center(), run_time=5)
-        self.wait(7)
-        main_role.stop_walk()
+        main_role.walk_left()
+        self.wait(5)
+        main_role.stop_walk_left()
+        self.wait(2)
+        main_role.walk_right()
+        self.wait(3)
+        main_role.stop_walk_right()
         # role smile and rotate the eyeball
         self.play(main_role.rotate_eye_pupil(), main_role.smile())
         # role jump

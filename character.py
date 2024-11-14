@@ -5,7 +5,7 @@ import numpy as np
 
 class Limb(Line):
 
-    def __init__(self, start: Point3D, end: Point3D, **kwargs):
+    def __init__(self, start: Point3D, end: Point3D, is_left: bool, **kwargs):
         super().__init__(start=start, end=end, **kwargs)
         self.start_angle = np.arctan2(end[1] - start[1], end[0] - start[0])
         # if -np.pi/2 <= self.start_angle <= np.pi/2:
@@ -13,8 +13,12 @@ class Limb(Line):
             self.end_angle = np.pi - self.start_angle
         else:
             self.end_angle = -(np.pi - abs(self.start_angle))
-        self.add = True
-        self.need = True
+
+        self.is_left = is_left
+        if self.is_left:
+            self.add = False
+        else:
+            self.add = True
 
     def wave(self, obj, dt):
         step = np.pi / 40
@@ -47,16 +51,44 @@ class Limb(Line):
         elif not self.add:
             obj.rotate(-step, about_point=obj.get_start())
 
+    def walk_left(self, obj, dt):
+        step = np.pi * dt/3
+        start = obj.get_start()
+        end = obj.get_end()
+        angle = np.arctan2(end[1] - start[1], end[0] - start[0])
 
-    def walk(self):
+        if not (-5/8 * np.pi) <= angle <= (-3/8 * np.pi):
+            self.add = not self.add
+        if self.add:
+            obj.rotate(step, about_point=obj.get_start())
+        else:
+            obj.rotate(-step, about_point=obj.get_start())
+
+    def start_walk_left(self):
+        self.add_updater(self.walk_left)
+
+    def stop_walk_left(self):
+        self.remove_updater(self.walk_left)
+        # self.set_straight()
+
+    def start_wave(self):
         self.add_updater(self.wave)
 
-    def stop_walk(self):
+    def stop_wave(self):
         self.remove_updater(self.wave)
+
+    def set_straight(self):
+        start = self.get_start()
+        end = self.get_end()
+        angle = np.arctan2(end[1] - start[1], end[0] - start[0])
+        if angle < -np.pi /2:
+            self.rotate(abs(-np.pi /2 - angle), about_point=self.get_start())
+        else:
+            self.rotate(-abs(-np.pi /2 - angle), about_point=self.get_start())
 
 
 class Robot(object):
-    def __init__(self):
+    def __init__(self, ground_height: Point3D):
         self.head_radius = 1
         self.eye_radius = 0.15
         self.pupil_radius = 0.07
@@ -77,14 +109,17 @@ class Robot(object):
 
         self.body = RoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7, corner_radius=0.3).move_to(
             self.head.get_center() + DOWN * (self.head_radius + self.body_height/2 + 0.05))
-
-        self.left_arm = Limb(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
-        self.right_arm = Limb(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, color=BLUE).shift(DOWN * 1)
-        self.left_leg = Limb(start=DOWN * 2.5, end=LEFT * 0.5 + DOWN * 3.5, color=BLUE)
-        self.right_leg = Limb(start=DOWN * 2.5, end=RIGHT * 0.5 + DOWN * 3.5, color=BLUE)
+        self.leg_length = 1.5
+        self.left_arm = Limb(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, is_left=True, color=BLUE).shift(DOWN * 1)
+        self.right_arm = Limb(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, is_left=False, color=BLUE).shift(DOWN * 1)
+        self.left_leg = Limb(start=self.body.get_corner(DL) + RIGHT*0.1,
+                             end=self.body.get_corner(DL) + RIGHT*0.1 +DOWN * self.leg_length, is_left=True, color=BLUE)
+        self.right_leg = Limb(start=self.body.get_corner(DR) + LEFT*0.1,
+                              end=self.body.get_corner(DR) + LEFT*0.1 +DOWN * self.leg_length, is_left=False, color=BLUE)
 
         self.me = VGroup(self.head, self.left_eye, self.right_eye, self.left_pupil, self.right_pupil, self.mouth,
                          self.body, self.left_arm, self.right_arm, self.left_leg, self.right_leg)
+        self.ground_height = ground_height
 
     def it(self):
         return self.me
@@ -107,33 +142,49 @@ class Robot(object):
         play2 = Rotate(self.right_pupil, angle=2 * TAU, about_point=self.right_eye.get_center(), run_time=4)
         return play1, play2
 
+    def body_walk_move(self, obj, dt):
+        angle = np.pi * dt/3
+        a = self.leg_length * np.sin(angle)
+        obj.shift(LEFT * a)
+        drop = obj.get_bottom() - self.ground_height
+        if drop[1] >0:
+            obj.move_to(obj.get_center()+ DOWN * drop[1])
+        else:
+            obj.move_to(obj.get_center() + DOWN * drop[1])
 
     def walk(self):
-        self.left_leg.walk()
-        self.right_leg.walk()
+        self.left_leg.start_walk_left()
+        self.right_leg.start_walk_left()
+        self.it().add_updater(self.body_walk_move)
 
     def stop_walk(self):
-        self.left_leg.stop_walk()
-        self.right_leg.stop_walk()
-
+        self.left_leg.stop_walk_left()
+        self.right_leg.stop_walk_left()
+        self.left_leg.set_straight()
+        self.right_leg.set_straight()
+        self.it().remove_updater(self.body_walk_move)
 
 class CartoonCharacter(Scene):
     def construct(self):
         screen_width = config.frame_width
         screen_height = config.frame_height
-
-        main_role = Robot()
+        ground_line = Line(start=LEFT * (screen_width / 2), end=RIGHT * (screen_width / 2), color=GREY)
+        ground_line.set_stroke(width=6)
+        ground_line.shift(DOWN * 3)
+        self.add(ground_line)
+        main_role = Robot(ground_line.get_bottom())
+        body = main_role.it()
         # role enter the scene
-        main_role.it().move_to(ORIGIN + RIGHT * (screen_width / 2))
 
-        self.play(FadeIn(main_role.it()))
+        body.move_to(ground_line.get_bottom() + UP * (body.get_top() - body.get_bottom())/2 + RIGHT * (screen_width / 2))
+
+        self.play(FadeIn(body))
 
         # make the role walk to the center of the scene
         main_role.walk()
-        self.play(main_role.move_to_center(), run_time=5)
-
+        # self.play(main_role.move_to_center(), run_time=5)
+        self.wait(7)
         main_role.stop_walk()
-
         # role smile and rotate the eyeball
         self.play(main_role.rotate_eye_pupil(), main_role.smile())
         # role jump

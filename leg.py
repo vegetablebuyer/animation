@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Leg(object):
-    def __init__(self):
+    def __init__(self, left: bool=True):
         self.thigh_length = 2  # 大腿长度
         self.shin_length = 1.5  # 小腿长度
         self.hip_position = UP * 2  # 髋关节位置
@@ -13,10 +13,14 @@ class Leg(object):
         self.theta2 = -PI / 2  # 小腿与大腿的初始夹角
 
         # 动态角度变化范围
-        self.theta1_min, self.theta1_max = -6 / 10 * PI, -3 / 10 * PI  # 大腿摆动范围
+        self.theta1_min, self.theta1_max = -7 / 10 * PI, -3 / 10 * PI  # 大腿摆动范围
 
         # 动态角度更新速度
-        self.theta1_speed = 0.05
+        speed = 0.05
+        if left:
+            self.theta1_speed = speed
+        else:
+            self.theta1_speed = -speed
 
         # 髋关节点
         self.hip = Dot(self.hip_position, color=BLUE)
@@ -52,7 +56,6 @@ class Leg(object):
         # 小腿角度规则
         swag_max = abs(PI/2 - abs(self.theta1_max))
         swag_min = abs(PI/2 - abs(self.theta1_min))
-        swag_range = abs(abs(self.theta1_max) - abs(self.theta1_min))
         if -PI / 2 <= self.theta1 <= -PI / 2 + swag_max / 2:
             self.theta2 = -PI / 2  # 小腿保持垂直
         elif -PI / 2 + swag_max / 2 < self.theta1 <= self.theta1_max:
@@ -87,26 +90,13 @@ class Leg(object):
 
 class Walk(Scene):
     def construct(self):
-        leg_a = Leg()
-        leg_b = Leg()
+        leg_a = Leg(left=False)
+        leg_b = Leg(left=True)
         self.add(leg_a.leg)
         self.add(leg_b.leg)
         leg_a.leg.shift(LEFT*0.5)
         leg_b.walk()
-        self.wait(1.1)
         leg_a.walk()
         self.wait(10)
         leg_a.stop_walk()
         leg_b.stop_walk()
-
-
-class A(Scene):
-    def construct(self):
-        position = UP * 2
-        hip = Dot(position, color=PINK)
-        link = Line(start=position, end=position+DOWN*3)
-        it = VGroup(hip, link)
-        self.add(it)
-        self.wait(2)
-        it.shift(LEFT*3)
-        self.wait(2)

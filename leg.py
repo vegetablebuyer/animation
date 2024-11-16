@@ -3,31 +3,31 @@ import numpy as np
 
 
 class Leg(object):
-    def __init__(self, left: bool=True):
-        self.thigh_length = 2  # 大腿长度
-        self.shin_length = 1.5  # 小腿长度
-        self.hip_position = UP * 2  # 髋关节位置
+    def __init__(self, right: bool=True):
+        self.thigh_length = 2  # thigh length
+        self.shin_length = 1.5  # shin length
+        self.hip_position = UP * 2  # start position of the thigh
 
-        # 初始角度（弧度制）
-        self.theta1 = -PI / 2  # 大腿与垂直线的初始夹角
-        self.theta2 = -PI / 2  # 小腿与大腿的初始夹角
+        # initial angle
+        self.thigh_angle = -PI / 2  # thigh initial angle
+        self.shin_angle = -PI / 2  # shin initial angle
 
-        # 动态角度变化范围
-        self.theta1_min, self.theta1_max = -7 / 10 * PI, -3 / 10 * PI  # 大腿摆动范围
+        # thigh swag range
+        self.thigh_angle_min, self.thigh_angle_max = (-PI/2)- (PI/5), (-PI/2)+ (PI/5)  # 大腿摆动范围
 
-        # 动态角度更新速度
+        # thigh swag speed
         speed = 0.05
-        if left:
-            self.theta1_speed = speed
+        if right:
+            self.swag_speed = speed
         else:
-            self.theta1_speed = -speed
+            self.swag_speed = -speed
 
-        # 髋关节点
+        
         self.hip = Dot(self.hip_position, color=BLUE)
-        # 初始化大腿和小腿
+
         self.knee_position = self.hip.get_center() + np.array([
-            self.thigh_length * np.cos(self.theta1),
-            self.thigh_length * np.sin(self.theta1),
+            self.thigh_length * np.cos(self.thigh_angle),
+            self.thigh_length * np.sin(self.thigh_angle),
             0
         ])
         self.thigh = Line(
@@ -36,8 +36,8 @@ class Leg(object):
             color=YELLOW
         )
         self.foot_position = self.knee_position + np.array([
-            self.shin_length * np.cos(self.theta2),
-            self.shin_length * np.sin(self.theta2),
+            self.shin_length * np.cos(self.shin_angle),
+            self.shin_length * np.sin(self.shin_angle),
             0
         ])
         self.shin = Line(
@@ -48,55 +48,103 @@ class Leg(object):
 
         self.leg = VGroup(self.hip, self.thigh, self.shin)
 
-    def walk_action(self, obj, dt):
-        self.theta1 += self.theta1_speed
-        if self.theta1 >= self.theta1_max or self.theta1 <= self.theta1_min:
-            self.theta1_speed *= -1  # 摆动方向切换
+    def walk_right_action(self, obj, dt):
+        self.thigh_angle += self.swag_speed
+        if self.thigh_angle >= self.thigh_angle_max or self.thigh_angle <= self.thigh_angle_min:
+            # change the swag direction
+            self.swag_speed *= -1
 
-        # 小腿角度规则
-        swag_max = abs(PI/2 - abs(self.theta1_max))
-        swag_min = abs(PI/2 - abs(self.theta1_min))
-        if -PI / 2 <= self.theta1 <= -PI / 2 + swag_max / 2:
-            self.theta2 = -PI / 2  # 小腿保持垂直
-        elif -PI / 2 + swag_max / 2 < self.theta1 <= self.theta1_max:
-            self.theta2 += 2 * self.theta1_speed
-        elif -PI / 2 - swag_min / 2 <= self.theta1 < -PI / 2:
-            self.theta2 += 2 * self.theta1_speed
-        elif self.theta1_min <= self.theta1 < -PI / 2 - swag_min / 2:
-            self.theta2 += self.theta1_speed
+        swag_max = abs(PI/2 - abs(self.thigh_angle_max))
+        swag_min = abs(PI/2 - abs(self.thigh_angle_min))
+        if -PI / 2 <= self.thigh_angle <= -PI / 2 + swag_max / 2:
+            # shin keep straight
+            self.shin_angle = -PI / 2
+        elif -PI / 2 + swag_max / 2 < self.thigh_angle <= self.thigh_angle_max:
+            self.shin_angle += 2 * self.swag_speed
+        elif -PI / 2 - swag_min / 2 <= self.thigh_angle < -PI / 2:
+            self.shin_angle += 2 * self.swag_speed
+        elif self.thigh_angle_min <= self.thigh_angle < -PI / 2 - swag_min / 2:
+            self.shin_angle += self.swag_speed
 
-        # 更新膝盖位置（大腿末端）
+        # update knee position
         new_knee_position = self.hip.get_center() + np.array([
-            self.thigh_length * np.cos(self.theta1),
-            self.thigh_length * np.sin(self.theta1),
+            self.thigh_length * np.cos(self.thigh_angle),
+            self.thigh_length * np.sin(self.thigh_angle),
             0
         ])
         self.thigh.put_start_and_end_on(self.hip.get_center(), new_knee_position)
 
-        # 更新脚位置（小腿末端）
+       # update foot position
         new_foot_position = new_knee_position + np.array([
-            self.shin_length * np.cos(self.theta2),
-            self.shin_length * np.sin(self.theta2),
+            self.shin_length * np.cos(self.shin_angle),
+            self.shin_length * np.sin(self.shin_angle),
             0
         ])
         self.shin.put_start_and_end_on(new_knee_position, new_foot_position)
 
-    def walk(self):
-        self.leg.add_updater(self.walk_action)
+    def walk_left_action(self, obj, dt):
+        
+        self.thigh_angle += self.swag_speed
+        if self.thigh_angle >= self.thigh_angle_max or self.thigh_angle <= self.thigh_angle_min:
+            # change the swag direction
+            self.swag_speed *= -1 
 
-    def stop_walk(self):
-        self.leg.remove_updater(self.walk_action)
+        swag_max = abs(PI/2 - abs(self.thigh_angle_max))
+        swag_min = abs(PI/2 - abs(self.thigh_angle_min))
+        if -PI /2 - swag_max /2 <= self.thigh_angle <= -PI/2:
+            # shin keep straight
+            self.shin_angle = -PI / 2 
+        elif self.thigh_angle_max < self.thigh_angle <= -PI /2 - swag_max /2:
+            self.shin_angle += 2 * self.swag_speed
+        elif  -PI / 2 <= self.thigh_angle < -PI / 2 + swag_min / 2:
+            self.shin_angle += 2 * self.swag_speed
+        elif -PI / 2 + swag_min / 2 <= self.thigh_angle < self.thigh_angle_min:
+            self.shin_angle += self.swag_speed
+
+        # update knee position
+        new_knee_position = self.hip.get_center() + np.array([
+            self.thigh_length * np.cos(self.thigh_angle),
+            self.thigh_length * np.sin(self.thigh_angle),
+            0
+        ])
+        self.thigh.put_start_and_end_on(self.hip.get_center(), new_knee_position)
+
+        # update foot position
+        new_foot_position = new_knee_position + np.array([
+            self.shin_length * np.cos(self.shin_angle),
+            self.shin_length * np.sin(self.shin_angle),
+            0
+        ])
+        self.shin.put_start_and_end_on(new_knee_position, new_foot_position)
+
+    def walk_right(self):
+        self.leg.add_updater(self.walk_right_action)
+
+    def stop_walk_right(self):
+        self.leg.remove_updater(self.walk_right_action)
+
+    def walk_left(self):
+        self.leg.add_updater(self.walk_left_action)
+
+    def stop_walk_left(self):
+        self.leg.remove_updater(self.walk_left_action)
 
 
 class Walk(Scene):
     def construct(self):
-        leg_a = Leg(left=False)
-        leg_b = Leg(left=True)
-        self.add(leg_a.leg)
-        self.add(leg_b.leg)
-        leg_a.leg.shift(LEFT*0.5)
-        leg_b.walk()
-        leg_a.walk()
+        left_leg = Leg(right=False)
+        right_leg = Leg(right=True)
+        self.add(left_leg.leg)
+        self.add(right_leg.leg)
+        left_leg.leg.shift(LEFT*0.5)
+        left_leg.walk_right()
+        right_leg.walk_right()
         self.wait(10)
-        leg_a.stop_walk()
-        leg_b.stop_walk()
+        left_leg.stop_walk_right()
+        right_leg.stop_walk_right()
+        # left_leg.walk_left()
+        # right_leg.walk_left()
+        # self.wait(10)
+        # left_leg.stop_walk_left()
+        # right_leg.stop_walk_left()
+

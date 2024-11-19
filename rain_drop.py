@@ -25,16 +25,15 @@ def step(obj, dt):
 def update_raindrop(obj, dt):
     body = obj.body
     pos = body.position
-    print("rain:", pos.y)
     obj.put_start_and_end_on(
         [pos.x, pos.y, 0],
         [pos.x, pos.y - 0.3, 0]
     )
     obj.angle = obj.body.angle
 
-    # if pos.y < -3.5:
-    #     body.position = (random.uniform(-10, 10), 5)
-    #     body.velocity = (0, 0)
+    if pos.y < -3.5:
+        body.position = (random.uniform(-10, 10), 5)
+        body.velocity = (0, 0)
 
 
 def update_circle(obj, dt):
@@ -47,17 +46,17 @@ def update_circle(obj, dt):
 
 class RainDrop(Line):
     def __init__(self, **kwargs):
-        # x_pos = random.uniform(-6, 6)
-        x_pos = 0
+        x_pos = random.uniform(-6, 6)
+        # x_pos = 0
         y_pos = 3
-        start_pos = (x_pos, y_pos)  # 雨滴初始位置
-        end_pos = (x_pos, y_pos - 0.3)  # 雨滴的另一端
+        start_pos = (0, 0)  # 雨滴初始位置
+        end_pos = (0, -0.3)  # 雨滴的另一端
         super().__init__(start=(x_pos, y_pos, 0), end=(x_pos, y_pos - 0.3, 0), **kwargs)
         # self.body = pymunk.Body()
         self.body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.05))
         self.body.position = x_pos, y_pos
         self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.05)
-        self.shape.elasticity = 0.8
+        self.shape.elasticity = 0.5
         self.shape.density = 1
         self.add_updater(update_raindrop)
 
@@ -82,7 +81,7 @@ class Ground(Line):
         self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
 
         self.shape = pymunk.Segment(self.body, (-10, g_y_pos), (10, g_y_pos), 0.1)
-        self.shape.elasticity = 0.99
+        self.shape.elasticity = 1
         # self.shape.collision_type = 2
         self.shift(g_y_pos * UP)
 
@@ -97,21 +96,17 @@ class RainScene(Scene):
 
         space.add_body(ground)
 
-        rain_list = list()
-        a = PhyCircle(radius=0.5).set_fill(YELLOW, True)
-        space.add_body(a)
-        self.add(a)
         def add_random_raindrop(dt):
             for _ in range(10):
-                if len(rain_list) >= 1:
-                    return
+                # if len(rain_list) >= 20:
+                #     return
                 rain = RainDrop(color=BLUE)
                 self.add(rain)
                 space.add_body(rain)
-                rain_list.append(rain)
+                # rain_list.append(rain)
 
         self.add_updater(add_random_raindrop)
-        self.wait(30)
+        self.wait(5)
         self.remove_updater(add_random_raindrop)
 
 

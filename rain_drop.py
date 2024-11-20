@@ -5,10 +5,12 @@ import random
 
 
 class Space(Mobject):
-    def __init__(self, dt, gravity=-3, **kwargs):
+    def __init__(self, scene, dt, gravity=-2, **kwargs):
         Mobject.__init__(self, **kwargs)
+
         self.space = pymunk.Space()
-        self.space.gravity = 0, gravity
+        self.space.scene = scene
+        self.space.gravity = 1, gravity
         self.dt = dt
         self.add_updater(step)
 
@@ -27,52 +29,31 @@ def update_raindrop(obj, dt):
     pos = body.position
     obj.put_start_and_end_on(
         [pos.x, pos.y, 0],
-        [pos.x, pos.y - 0.3, 0]
+        [pos.x - 0.2, pos.y + 0.3, 0]
     )
     obj.angle = obj.body.angle
 
     if pos.y < -3.5:
-        body.position = (random.uniform(-10, 10), 5)
+        body.position = (random.uniform(-10, 10), 6)
         body.velocity = (0, 0)
-
-
-def update_circle(obj, dt):
-    x, y = obj.body.position
-    # print("cricle:", obj.body.position.y)
-    obj.move_to(x * RIGHT + y * UP)
-    obj.rotate(obj.body.angle - obj.angle)
-    obj.angle = obj.body.angle
 
 
 class RainDrop(Line):
     def __init__(self, **kwargs):
-        x_pos = random.uniform(-6, 6)
-        # x_pos = 0
+        x_pos = random.uniform(-10, 10)
         y_pos = 3
         start_pos = (0, 0)  # 雨滴初始位置
-        end_pos = (0, -0.3)  # 雨滴的另一端
-        super().__init__(start=(x_pos, y_pos, 0), end=(x_pos, y_pos - 0.3, 0), **kwargs)
+        end_pos = (-0.2, 0.3)  # 雨滴的另一端
+        super().__init__(start=(x_pos, y_pos, 0), end=(x_pos - 0.2, y_pos + 0.3, 0), **kwargs)
         # self.body = pymunk.Body()
         self.body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.05))
         self.body.position = x_pos, y_pos
         self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.05)
         self.shape.elasticity = 0.5
         self.shape.density = 1
+        self.shape.collision_type = 1
         self.add_updater(update_raindrop)
-
-
-class PhyCircle(Circle):
-    def __init__(self, radius: float = None, c_color: ParsableManimColor = RED,
-                 elasticity=0.8, density=1, pos=(-3, 6), **kwargs):
-        super().__init__(radius=radius, color=c_color, **kwargs)
-        self.body = pymunk.Body()
-        # self.body.velocity = velocity
-        self.body.position = self.get_center()[0] + pos[0], self.get_center()[1] + pos[1]
-        self.shape = pymunk.Circle(self.body, self.get_width() / 2)
-        self.shape.elasticity = elasticity
-        self.shape.density = density
-        self.angle = 0
-        self.add_updater(update_circle)
+        self.shape.manim_obj = self
 
 
 class Ground(Line):
@@ -82,56 +63,56 @@ class Ground(Line):
 
         self.shape = pymunk.Segment(self.body, (-10, g_y_pos), (10, g_y_pos), 0.1)
         self.shape.elasticity = 1
-        # self.shape.collision_type = 2
+        self.shape.collision_type = 2
         self.shift(g_y_pos * UP)
 
 
 class RainScene(Scene):
     def construct(self):
-        space = Space(1 / config.frame_rate)
+        space = Space(self, 1 / config.frame_rate)
         self.add(space)
 
         ground = Ground(g_y_pos=-3, start=LEFT * 10, end=RIGHT * 10, color=GREY)
         self.add(ground)
-
+        self.remove()
         space.add_body(ground)
+        handler = space.space.add_collision_handler(1, 2)
+
+        def begin_collision(arbiter, space, data):
+            shape = arbiter.shapes[0]
+            if hasattr(shape, "manim_obj"):
+                manim_obj = shape.manim_obj
+                manim_obj.clear_updaters()
+                manim_obj.put_start_and_end_on([0, 0, 0], [0, 0, 0])
+
+                space.remove(shape, shape.body)
+                space.scene.remove(manim_obj)
+
+                return False
+            else:
+                return True
+
+        def post_solve_collision(arbiter, space, data):
+            print("雨滴开始与地面发生碰撞")
+            return True  # 继续进行碰撞处理
+
+        def separate_collision(arbiter, space, data):
+            print("雨滴与地面分离")
+            return True
+
+        handler.begin = post_solve_collision
+        handler.post_solve = separate_collision
+        handler.separate = begin_collision
 
         def add_random_raindrop(dt):
-            for _ in range(10):
-                # if len(rain_list) >= 20:
-                #     return
+            for _ in range(2):
                 rain = RainDrop(color=BLUE)
                 self.add(rain)
                 space.add_body(rain)
-                # rain_list.append(rain)
 
         self.add_updater(add_random_raindrop)
         self.wait(5)
         self.remove_updater(add_random_raindrop)
 
 
-class CircleScene(Scene):
-    def construct(self):
-        print(config.frame_height)
-        space = Space(1 / config.frame_rate)
-        self.add(space)
 
-        x = Ground(g_y_pos=3, start=LEFT * 10, end=RIGHT * 10, color=PINK)
-        self.add(x)
-
-        space.add_body(x)
-
-        z = list()
-
-        def add_random_circle(dt):
-            for _ in range(1):
-                if len(z) >= 1:
-                    return
-                c = PhyCircle(radius=0.5).set_fill(GREEN, True)
-                self.add(c)
-                space.add_body(c)
-                z.append(c)
-
-        self.add_updater(add_random_circle)
-        self.wait(10)
-        self.remove_updater(add_random_circle)

@@ -1,110 +1,132 @@
-
 from manim import *
+from manim.typing import Point3D
 import pymunk
 import random
 
-class B(Scene):
+
+class Space(Mobject):
+    def __init__(self, scene, dt, gravity=-2, **kwargs):
+        Mobject.__init__(self, **kwargs)
+
+        self.space = pymunk.Space()
+        self.space.scene = scene
+        self.space.gravity = 1, gravity
+        self.dt = dt
+        self.add_updater(step)
+
+    def add_body(self, *bodies):
+        for body in bodies:
+            self.space.add(body.body)
+            self.space.add(body.shape)
+
+
+def step(obj, dt):
+    obj.space.step(dt)
+
+
+def update_raindrop(obj, dt, body):
+    pos = body.position
+    obj.put_start_and_end_on(
+        [pos.x, pos.y, 0],
+        [pos.x - 0.2, pos.y + 0.3, 0]
+    )
+
+
+class RainDrop(object):
+    def __init__(self, **kwargs):
+        x_pos = random.uniform(-10, 10)
+        y_pos = 6
+        start_pos = (0, 0)  # 雨滴初始位置
+        end_pos = (-0.2, 0.3)  # 雨滴的另一端
+        self.rain = Line(start=(x_pos, y_pos, 0), end=(x_pos - 0.2, y_pos + 0.3, 0), **kwargs)
+        # self.body = pymunk.Body()
+        self.body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.05))
+        self.body.position = x_pos, y_pos
+        self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.05)
+        self.shape.elasticity = 0.5
+        self.shape.density = 1
+        self.shape.collision_type = 1
+        self.rain.add_updater(lambda mob, dt: update_raindrop(mob, dt, body=self.body))
+        self.shape.manim_obj = self.rain
+
+
+class Ground(Line):
+    def __init__(self, g_y_pos: int = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
+
+        self.shape = pymunk.Segment(self.body, (-10, g_y_pos), (10, g_y_pos), 0.1)
+        self.shape.elasticity = 1
+        self.shape.collision_type = 2
+        self.shift(g_y_pos * UP)
+
+
+class RainScene(Scene):
     def construct(self):
-        # 创建地面
-        ground_line = Line(start=LEFT * 10, end=RIGHT * 10, color=GREY).shift(DOWN * 3)
-        self.add(ground_line)
+        space = Space(self, 1 / config.frame_rate)
+        self.add(space)
+        ground = Ground(g_y_pos=-3, start=LEFT * 10, end=RIGHT * 10, color=GREY)
+        self.add(ground)
 
-        # Pymunk 物理世界
-        space = pymunk.Space()
-        space.gravity = (3, -10)  # 设置重力方向和大小
+        space.add_body(ground)
+        handler = space.space.add_collision_handler(1, 2)
 
-        # 地面对象
-        ground_body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        ground_shape = pymunk.Segment(ground_body, (-6, -3), (6, -3), 0.1)
-        ground_shape.elasticity = 0.9
-        space.add(ground_body, ground_shape)
+        def begin_collision(arbiter, space, data):
+            shape_a, shape_b = arbiter.shapes
+            for shape in [shape_a, shape_b]:
+                if hasattr(shape, "manim_obj"):
+                    obj = shape.manim_obj
+                    obj.put_start_and_end_on(
+                            [0, 0, 0],
+                            [0, 0, 0]
+                    )
+                    space.remove(shape, shape.body)
+                    obj.clear_updaters()
+                    # space.scene.remove(obj)
+                    return True
+                else:
+                    print("yyyyy")
+                    return True
 
-        # 容器存储雨滴对象
-        droplets = []
+        def post_solve_collision(arbiter, space, data):
+            print("雨滴开始与地面发生碰撞")
+            return True  # 继续进行碰撞处理
 
-        # 创建雨滴
-        def create_raindrop():
-            x_position = random.uniform(-10, 10)  # 雨滴随机水平位置
-            start_pos = (x_position, 3)  # 雨滴初始位置
-            end_pos = (x_position + 0.2, 2.7)  # 雨滴的另一端
+        def separate_collision(arbiter, space, data):
+            print("雨滴与地面分离")
+            return True
 
-            # Pymunk 物理长条
-            droplet_body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.05))
-            droplet_body.position = start_pos
-            droplet_shape = pymunk.Segment(droplet_body, (0, 0), (0, -0.5), 0.05)  # 雨滴形状
-            droplet_shape.elasticity = 0.6
-            droplet_shape.collision_type = 1  # 设置碰撞类型
+        handler.begin = begin_collision
+        handler.post_solve = begin_collision
+        handler.separate = begin_collision
 
-            space.add(droplet_body, droplet_shape)
+        def add_random_raindrop(dt):
+            for _ in range(10):
+                # if len(rain_list) >= 10:
+                #     return
 
-            # Manim 的雨滴表示为一条线
-            droplet_mobject = Line(
-                start=(x_position, 3, 0),
-                end=(x_position + 0.2, 2.7, 0),
-                color=BLUE,
-                stroke_width=3
-            )
-            droplets.append((droplet_body, droplet_mobject))
-            self.add(droplet_mobject)
+                rain = RainDrop(color=BLUE)
+                self.add(rain.rain)
+                space.add_body(rain)
+                # rain_list.append(rain.rain)
 
-        # 碰撞回调函数
-        def on_collision(arbiter, space, data):
-            # 获取雨滴的位置
-            body = arbiter.shapes[0].body
-            pos = body.position
-
-            # 模拟水花效果（用小圆点表示）
-            for _ in range(3):
-                splash = Dot(point=[pos.x + random.uniform(-0.2, 0.2), pos.y + random.uniform(0.1, 0.3), 0], radius=0.05, color=WHITE)
-                self.add(splash)
-                self.remove(splash)
-
-            return True  # 继续处理其他碰撞事件
-
-        # 注册碰撞处理器
-        handler = space.add_collision_handler(1, 0)  # 1 为雨滴，0 为地面
-        handler.post_solve = on_collision
-
-        # 更新雨滴位置
-        def update_droplets(dt):
-            space.step(dt)  # 更新物理引擎
-            for body, mobject in droplets:
-                pos = body.position
-                angle = body.angle
-                mobject.put_start_and_end_on(
-                    [pos.x, pos.y, 0],
-                    [pos.x + 0.2 + 0.3 * np.sin(angle), pos.y - 0.3 * np.cos(angle), 0]
-                )
-
-                # 如果雨滴越过地面以下，则重新生成
-                if pos.y < -3.5:
-                    body.position = (random.uniform(-10, 10), 3)
-                    body.velocity = (0, 0)
-
-        # 动态添加雨滴
-        def add_rain(dt):
-            for _ in range(5):  # 每帧添加 5 个雨滴
-                create_raindrop()
-
-        # 添加更新器
-        self.add_updater(update_droplets)
-        self.add_updater(add_rain)
-
-        # 动画运行一段时间
+        self.add_updater(add_random_raindrop)
         self.wait(5)
 
-        # 停止更新器
-        self.remove_updater(update_droplets)
-        self.remove_updater(add_rain)
+        self.remove_updater(add_random_raindrop)
 
-class A(Scene):
-    def construct(self):
-        x_position = random.uniform(-6, 6)
-        droplet_mobject = Line(
-            start=(x_position, 3, 0),
-            end=(x_position + 0.2, 3.3, 0),
-            color=PINK,
-            stroke_width=3
-        )
-        self.add(droplet_mobject)
-        self.wait(3)
+
+        # for _ in range(10):
+        #     rain = RainDrop(color=BLUE)
+        #     self.add(rain.rain)
+        #     space.add_body(rain)
+        #     rain_list.append(rain)
+        # self.wait(2)
+        #
+        # for a in rain_list:
+        #     a.shape.manim_obj.clear_updaters()
+        #     space.space.scene.remove(a.shape.manim_obj)
+        #     self.wait(0.5)
+        # self.wait(1)
+
+

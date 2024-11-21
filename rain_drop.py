@@ -78,31 +78,33 @@ class RainScene(Scene):
         space.add_body(ground)
         handler = space.space.add_collision_handler(1, 2)
 
+        a = Circle()
+
         def begin_collision(arbiter, space, data):
             shape = arbiter.shapes[0]
             if hasattr(shape, "manim_obj"):
                 manim_obj = shape.manim_obj
                 manim_obj.clear_updaters()
                 manim_obj.put_start_and_end_on([0, 0, 0], [0, 0, 0])
-
+                print("before remove scene numbers", len(space.scene.mobjects))
                 space.remove(shape, shape.body)
                 space.scene.remove(manim_obj)
+                print("after remove scene numbers", len(space.scene.mobjects))
 
-                return False
+                return True
             else:
                 return True
 
         def post_solve_collision(arbiter, space, data):
-            print("雨滴开始与地面发生碰撞")
             return True  # 继续进行碰撞处理
 
         def separate_collision(arbiter, space, data):
-            print("雨滴与地面分离")
             return True
 
-        handler.begin = post_solve_collision
+        handler.begin = begin_collision
         handler.post_solve = separate_collision
-        handler.separate = begin_collision
+        handler.separate = separate_collision
+
 
         def add_random_raindrop(dt):
             for _ in range(2):
@@ -113,6 +115,7 @@ class RainScene(Scene):
         self.add_updater(add_random_raindrop)
         self.wait(5)
         self.remove_updater(add_random_raindrop)
-
+        self.wait(10)
+        print("end number", len(self.mobjects))
 
 

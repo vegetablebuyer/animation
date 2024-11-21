@@ -24,6 +24,11 @@ def step(obj, dt):
     obj.space.step(dt)
 
 
+def simulate(obj, dt, body):
+    body.position = obj.get_center()[0] - 0.05, obj.get_center()[1]
+    obj.move_to((obj.get_center()[0] - 0.05) * RIGHT + obj.get_center()[1] * UP)
+
+
 def update_raindrop(obj, dt, body):
     pos = body.position
     obj.put_start_and_end_on(
@@ -50,6 +55,20 @@ class RainDrop(object):
         self.shape.manim_obj = self.rain
 
 
+class PhyCircle(object):
+    def __init__(self, radius: float = None, c_color: ParsableManimColor = RED,
+                 velocity=(0, 0), elasticity=0.8, density=1, pos=(0, 0), **kwargs):
+        self.circle = Circle(radius=radius, color=c_color, **kwargs).set_fill(RED, 1)
+        self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+        self.body.velocity = velocity
+        self.body.position = self.circle.get_center()[0] + pos[0], self.circle.get_center()[1] + pos[1]
+        self.shape = pymunk.Circle(self.body, self.circle.get_width() / 2)
+        self.shape.elasticity = elasticity
+        self.shape.density = density
+        self.shape.collision_type = 2
+        self.circle.add_updater(lambda mob, dt: simulate(mob, dt, body=self.body))
+
+
 class Ground(Line):
     def __init__(self, g_y_pos: int = 0, **kwargs):
         super().__init__(**kwargs)
@@ -71,6 +90,10 @@ class RainScene(Scene):
         space.add_body(ground)
         handler = space.space.add_collision_handler(1, 2)
 
+        a = PhyCircle(radius=1, pos=(0, 0))
+        space.add_body(a)
+        self.add(a.circle)
+
         def begin_collision(arbiter, space, data):
             shape_a, shape_b = arbiter.shapes
             for shape in [shape_a, shape_b]:
@@ -82,51 +105,32 @@ class RainScene(Scene):
                     )
                     space.remove(shape, shape.body)
                     obj.clear_updaters()
-                    # space.scene.remove(obj)
+                    space.scene.remove(obj)
                     return True
                 else:
-                    print("yyyyy")
                     return True
 
         def post_solve_collision(arbiter, space, data):
-            print("雨滴开始与地面发生碰撞")
             return True  # 继续进行碰撞处理
 
         def separate_collision(arbiter, space, data):
-            print("雨滴与地面分离")
             return True
 
-        handler.begin = begin_collision
+        handler.begin = post_solve_collision
         handler.post_solve = begin_collision
-        handler.separate = begin_collision
+        handler.separate = post_solve_collision
 
         def add_random_raindrop(dt):
-            for _ in range(10):
-                # if len(rain_list) >= 10:
-                #     return
+            for _ in range(20):
 
                 rain = RainDrop(color=BLUE)
                 self.add(rain.rain)
                 space.add_body(rain)
-                # rain_list.append(rain.rain)
 
         self.add_updater(add_random_raindrop)
-        self.wait(5)
+        self.wait(10)
 
         self.remove_updater(add_random_raindrop)
-
-
-        # for _ in range(10):
-        #     rain = RainDrop(color=BLUE)
-        #     self.add(rain.rain)
-        #     space.add_body(rain)
-        #     rain_list.append(rain)
-        # self.wait(2)
-        #
-        # for a in rain_list:
-        #     a.shape.manim_obj.clear_updaters()
-        #     space.space.scene.remove(a.shape.manim_obj)
-        #     self.wait(0.5)
-        # self.wait(1)
-
+        self.wait(5)
+        print("end number", len(self.mobjects))
 

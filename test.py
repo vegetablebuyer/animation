@@ -49,15 +49,15 @@ def little_raindrop(obj, dt, shape, space):
 
 class RainDrop(object):
     def __init__(self, **kwargs):
-        x_pos = random.uniform(-10, 10)
+        x_pos = random.uniform(-12, 12)
         y_pos = 6
-        start_pos = (0, 0)  # 雨滴初始位置
-        end_pos = (-0.2, 0.3)  # 雨滴的另一端
-        self.rain = Line(start=(x_pos, y_pos, 0), end=(x_pos - 0.2, y_pos + 0.3, 0), **kwargs)
+        start_pos = (0, 0)
+        end_pos = (-0.1, 0.15)
+        self.rain = Line(start=(x_pos, y_pos, 0), end=(x_pos - 0.1, y_pos + 0.15, 0), **kwargs)
         # self.body = pymunk.Body()
-        self.body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.05))
+        self.body = pymunk.Body(1, pymunk.moment_for_segment(1, start_pos, end_pos, 0.03))
         self.body.position = x_pos, y_pos
-        self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.05)
+        self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.03)
         self.shape.elasticity = 0.5
         self.shape.density = 1
         self.shape.collision_type = 1
@@ -71,12 +71,11 @@ class SplitDrop(object):
         self.raindrop = Line(
             start=(pos_x, pos_y, 0),
             end=(pos_x + delta_x, pos_y + delta_y, 0),
-            color=BLUE,
-            stroke_width=2
+            color=WHITE
         )
-        self.body = pymunk.Body(0.1, pymunk.moment_for_segment(0.1, (0, 0), (delta_x, delta_y), 0.05))
+        self.body = pymunk.Body(0.1, pymunk.moment_for_segment(0.1, (0, 0), (delta_x, delta_y), 0.03))
         self.body.position = (pos_x, pos_y)
-        self.shape = pymunk.Segment(self.body, (0, 0), (delta_x, delta_y), 0.05)
+        self.shape = pymunk.Segment(self.body, (0, 0), (delta_x, delta_y), 0.03)
         self.shape.collision_type = 3
 
         self.raindrop.add_updater(lambda mob, dt: little_raindrop(mob, dt, shape=self.shape, space=space))
@@ -84,12 +83,12 @@ class SplitDrop(object):
 
 class LeftSplitDrop(SplitDrop):
     def __init__(self, pos_x: float = 0, pos_y: float = 0, space=None):
-        super().__init__(pos_x=pos_x, pos_y=pos_y, delta_x=-0.1, delta_y=0.1, space=space)
+        super().__init__(pos_x=pos_x, pos_y=pos_y, delta_x=-0.08, delta_y=0.08, space=space)
 
 
 class RightSplitDrop(SplitDrop):
     def __init__(self, pos_x: float = 0, pos_y: float = 0, space=None):
-        super().__init__(pos_x=pos_x, pos_y=pos_y, delta_x=0.1, delta_y=0.1, space=space)
+        super().__init__(pos_x=pos_x, pos_y=pos_y, delta_x=0.08, delta_y=0.08, space=space)
 
 
 class PhyCircle(object):
@@ -127,7 +126,7 @@ class RainScene(Scene):
         space.add_body(ground)
         handler = space.space.add_collision_handler(1, 2)
 
-        a = PhyCircle(radius=1, pos=(0, 0))
+        a = PhyCircle(radius=0.5, pos=(0, 0))
         space.add_body(a)
         self.add(a.circle)
 
@@ -136,10 +135,10 @@ class RainScene(Scene):
             collision_point = arbiter.contact_point_set.points[0].point_a
             x, y = collision_point
 
-            left_raindrop = LeftSplitDrop(x, y, space)
+            left_raindrop = LeftSplitDrop(x - 0.01, y + 0.01, space)
             space.add(left_raindrop.body, left_raindrop.shape)
 
-            right_raindrop = RightSplitDrop(x, y, space)
+            right_raindrop = RightSplitDrop(x + 0.01, y + 0.01, space)
             space.add(right_raindrop.body, right_raindrop.shape)
 
             # 将小雨滴添加到场景
@@ -148,8 +147,8 @@ class RainScene(Scene):
             if hasattr(shape, "manim_obj"):
                 obj = shape.manim_obj
                 obj.put_start_and_end_on(
-                        [0, 0, 0],
-                        [0, 0, 0]
+                    [0, 0, 0],
+                    [0, 0, 0]
                 )
                 space.remove(shape, shape.body)
                 obj.clear_updaters()
@@ -159,7 +158,7 @@ class RainScene(Scene):
                 return True
 
         def post_solve_collision(arbiter, space, data):
-            return True  # 继续进行碰撞处理
+            return True
 
         def separate_collision(arbiter, space, data):
             return True
@@ -169,16 +168,15 @@ class RainScene(Scene):
         handler.separate = separate_collision
 
         def add_random_raindrop(dt):
-            for _ in range(5):
+            for _ in range(20):
 
-                rain = RainDrop(color=BLUE)
+                rain = RainDrop(color=WHITE)
                 self.add(rain.rain)
                 space.add_body(rain)
 
         self.add_updater(add_random_raindrop)
-        self.wait(5)
+        self.wait(10)
 
         self.remove_updater(add_random_raindrop)
-        self.wait(5)
-        print("end number", len(self.mobjects))
+        self.wait(2)
 

@@ -10,3 +10,6 @@ class PhysicalGround(Line):
         self.shape.elasticity = 1
         self.shape.collision_type = 2
         self.shift(y_pos * UP)
+
+
+# ground = Ground(y_pos=-3, start=LEFT * 10, end=RIGHT * 10, color=GREY)

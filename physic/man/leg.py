@@ -5,8 +5,8 @@ from physic.physic_mobject import *
 
 class Leg(VMobject):
     def __init__(self, start: Point3D, thigh_length: int = 1, shin_length: int = 0.5,
-                 right: bool = True, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+                 right: bool = True, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.thigh_length = thigh_length  # thigh length
         self.shin_length = shin_length  # shin length
         # initial angle
@@ -22,7 +22,7 @@ class Leg(VMobject):
             self.swag_speed = speed
         else:
             self.swag_speed = -speed
-        self.hip = Dot(point=start, radius=0, *args, **kwargs)
+        self.hip = Dot(point=start, radius=0, **kwargs)
         self.knee_position = self.hip.get_center() + np.array([
             self.thigh_length * np.cos(self.thigh_angle),
             self.thigh_length * np.sin(self.thigh_angle),
@@ -31,7 +31,7 @@ class Leg(VMobject):
         self.thigh = PhysicalLine(
             self.hip.get_center(),
             self.knee_position,
-            *args, **kwargs
+            **kwargs
         )
         self.bodies.append(self.thigh)
         self.foot_position = self.knee_position + np.array([
@@ -42,7 +42,7 @@ class Leg(VMobject):
         self.shin = PhysicalLine(
             self.knee_position,
             self.foot_position,
-            *args, **kwargs
+            **kwargs
         )
         self.bodies.append(self.shin)
         self.leg = VGroup(self.hip, self.thigh, self.shin)
@@ -84,7 +84,7 @@ class Leg(VMobject):
             self.thigh_length * np.sin(self.thigh_angle),
             0
         ])
-        self.thigh.phy_put_start_and_end_on(self.hip.get_center(), new_knee_position)
+        self.thigh.put_start_and_end_on(self.hip.get_center(), new_knee_position)
 
         # update foot position
         new_foot_position = new_knee_position + np.array([
@@ -92,7 +92,7 @@ class Leg(VMobject):
             self.shin_length * np.sin(self.shin_angle),
             0
         ])
-        self.shin.phy_put_start_and_end_on(new_knee_position, new_foot_position)
+        self.shin.put_start_and_end_on(new_knee_position, new_foot_position)
 
     def walk_action(self, obj, dt, position):
         self.thigh_angle += self.swag_speed

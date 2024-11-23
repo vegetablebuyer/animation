@@ -1,9 +1,7 @@
-from manim import *
-from manim.typing import Point3D
 
 from physic.man.leg import Leg
 from physic.physic_mobject import *
-from character import Limb
+from physic.man.limb import Limb
 
 
 class Man(object):
@@ -16,6 +14,9 @@ class Man(object):
         self.body_height = 1.5
         self.body_height = 1.5
         self.body_width = 0.6
+        self.thigh_length = 1
+        self.shin_length = 1
+        self.bodies = []
         self.head = PhysicalCircle(radius=self.head_radius, color=BLUE, fill_opacity=0.7)
         self.left_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
             self.head.get_center() + LEFT * 0.4 + UP * 0.4)
@@ -29,11 +30,11 @@ class Man(object):
             self.head.get_center() + DOWN * 0.2)
         self.smile_mouth = Arc(radius=0.4, start_angle=-PI * 2 / 3, angle=PI / 2, color=BLACK)
 
-        self.body = RoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7,
+        self.body = PhysicalRoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7,
                                      corner_radius=0.3).move_to(
             self.head.get_center() + DOWN * (self.head_radius + self.body_height / 2 + 0.05))
-        self.thigh_length = 1
-        self.shin_length = 1
+
+
         self.left_arm = Limb(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, is_left=True, color=BLUE).shift(DOWN * 1)
         self.right_arm = Limb(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, is_left=False, color=BLUE).shift(
             DOWN * 1)
@@ -49,6 +50,14 @@ class Man(object):
         drop = self.me.get_bottom() - ground_height
         if drop[1] != 0:
             self.me.move_to(self.me.get_center() + DOWN * drop[1])
+        self.bodies.append(self.head)
+        self.bodies.append(self.body)
+        self.bodies.append(self.left_arm)
+        self.bodies.append(self.right_arm)
+        for body in self.left_leg.bodies:
+            self.bodies.append(body)
+        for body in self.right_leg.bodies:
+            self.bodies.append(body)
 
     def body_walk_move_left(self, obj, dt):
         angle = 0.01
@@ -106,32 +115,7 @@ class Man(object):
         return self.me
 
 
-class SceneA(Scene):
-    def construct(self):
-        screen_width = config.frame_width
-        ground_line = Line(start=LEFT * (screen_width / 2), end=RIGHT * (screen_width / 2), color=GREY)
-        ground_line.set_stroke(width=6)
-        ground_line.shift(DOWN * 3)
-        self.add(ground_line)
 
-        main_role = Man(ground_line.get_bottom())
-
-        body = main_role.it()
-        body.move_to(
-            ground_line.get_bottom() + UP * (body.get_top() - body.get_bottom()) / 2)
-        self.play(FadeIn(body))
-
-        main_role.walk_left()
-        self.wait(4)
-        main_role.stop_walk_left()
-        main_role.stand_straight()
-        self.wait(2)
-
-        main_role.walk_right()
-        self.wait(4)
-        main_role.stop_walk_right()
-        main_role.stand_straight()
-        self.wait(2)
 
 
 

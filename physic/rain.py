@@ -25,7 +25,7 @@ def begin_collision(arbiter, space, data):
     shape = arbiter.shapes[0]
     collision_point = arbiter.contact_point_set.points[0].point_a
     x, y = collision_point
-
+    # print(shape.collision_type, collision_point)
     left_raindrop = LeftSplitDrop(x - 0.01, y + 0.01, space)
     space.add(left_raindrop.body, left_raindrop.shape)
 
@@ -35,6 +35,7 @@ def begin_collision(arbiter, space, data):
     space.scene.add(left_raindrop.raindrop, right_raindrop.raindrop)
 
     if hasattr(shape, "manim_obj"):
+
         obj = shape.manim_obj
         obj.put_start_and_end_on(
             [0, 0, 0],
@@ -63,7 +64,7 @@ def collision_handle(handler:pymunk.collision_handler):
 
 
 class RainDrop(object):
-    def __init__(self, **kwargs):
+    def __init__(self, collision_type:int = 1, **kwargs):
         x_pos = random.uniform(-12, 12)
         y_pos = 6
         start_pos = (0, 0)
@@ -74,7 +75,7 @@ class RainDrop(object):
         self.shape = pymunk.Segment(self.body, start_pos, end_pos, 0.03)
         self.shape.elasticity = 0.5
         self.shape.density = 1
-        self.shape.collision_type = 1
+        self.shape.collision_type = collision_type
         self.rain.add_updater(lambda mob, dt: update_raindrop(mob, dt, body=self.body))
         self.shape.manim_obj = self.rain
 

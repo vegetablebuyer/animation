@@ -1,77 +1,26 @@
 from manim import *
-
-from physic.ground import PhysicalGround
-from physic.space import PhysicalSpace
-from physic.rain import RainDrop, collision_handle
-from physic.man.man import Man
+from manim.utils.color.XKCD import BROWN
 
 
-class RainScene(Scene):
+class A(Scene):
     def construct(self):
-        space = PhysicalSpace(self, 1 / config.frame_rate)
-        self.add(space)
-        ground = PhysicalGround(y_pos=-3, start=LEFT * 10, end=RIGHT * 10, color=GREY)
-        self.add(ground)
+        # 绘制贯穿屏幕的线
+        line = Line(start=LEFT * config.frame_width / 2, end=RIGHT * config.frame_width / 2)
+        line.set_y(-1)  # 将线的位置设置为屏幕下方一定高度
+        line.set_color(WHITE)
 
-        space.add_body(ground)
-        rain = RainDrop(color=WHITE)
-        handler = space.register_collision_event(rain.shape.collision_type, ground.shape.collision_type)
+        # 绘制线以下的区域（模拟土地）
+        land = Polygon(
+            (-1 * config.frame_width / 2, line.get_y(), 0),  # 左下角
+            (1 * config.frame_width / 2, line.get_y(), 0),  # 右下角
+            (1 * config.frame_width / 2, -config.frame_height / 2, 0),  # 右上角
+            (-1 * config.frame_width / 2, -config.frame_height / 2, 0),  # 左上角
+        )
+        land.set_fill(BROWN, opacity=1)  # 设置土地颜色
 
-        collision_handle(handler)
+        # 添加到场景
+        self.add(land, line)
 
-        def add_random_raindrop(dt):
-            for _ in range(5):
 
-                rain = RainDrop(color=WHITE)
-                self.add(rain.rain)
-                space.add_body(rain)
-
-        self.add_updater(add_random_raindrop)
-        self.wait(5)
-        self.remove_updater(add_random_raindrop)
+        # 停留以观察最终效果
         self.wait(2)
-
-class SceneA(Scene):
-    def construct(self):
-        space = PhysicalSpace(self, 1 / config.frame_rate)
-        self.add(space)
-        ground = PhysicalGround(y_pos=-3, start=LEFT * 10, end=RIGHT * 10, color=GREY)
-        ground.set_stroke(width=6)
-        self.add(ground)
-        space.add_body(ground)
-
-
-        main_role = Man(ground.get_bottom())
-        space.add_body(*main_role.bodies)
-
-        rain = RainDrop(color=WHITE)
-        handler = space.register_collision_event(rain.shape.collision_type, ground.shape.collision_type)
-
-        collision_handle(handler)
-
-        def add_random_raindrop(dt):
-            for _ in range(10):
-                rain = RainDrop(color=WHITE)
-                self.add(rain.rain)
-                space.add_body(rain)
-
-        self.add_updater(add_random_raindrop)
-        body = main_role.it()
-        body.move_to(
-            ground.get_bottom() + UP * (body.get_top() - body.get_bottom()) / 2)
-        self.play(FadeIn(body))
-
-        main_role.walk_left()
-        self.wait(8)
-
-        main_role.stop_walk_left()
-        main_role.stand_straight()
-        self.wait(2)
-
-        main_role.walk_right()
-        self.wait(8)
-        main_role.stop_walk_right()
-        main_role.stand_straight()
-        self.wait(2)
-        self.remove_updater(add_random_raindrop)
-

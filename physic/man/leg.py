@@ -4,7 +4,7 @@ from physic.physic_mobject import *
 
 
 class Leg(VMobject):
-    def __init__(self, start: Point3D, thigh_length: int = 1, shin_length: int = 0.5,
+    def __init__(self, start: Point3D, thigh_length: float = 1, shin_length: float = 0.5,
                  right: bool = True, **kwargs) -> None:
         super().__init__(**kwargs)
         self.thigh_length = thigh_length  # thigh length

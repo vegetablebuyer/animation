@@ -1,7 +1,4 @@
 from manim import *
-from manim.typing import Point3D
-import pymunk
-import random
 
 from physic.ground import PhysicalGround
 from physic.space import PhysicalSpace

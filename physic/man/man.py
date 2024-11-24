@@ -6,42 +6,47 @@ from physic.man.limb import Limb
 
 class Man(object):
 
-    def __init__(self, ground_height: Point3D) -> None:
+    def __init__(self, ground_height: Point3D, ratio: float=1) -> None:
         self.ground_height = ground_height
-        self.head_radius = 1
-        self.eye_radius = 0.15
-        self.pupil_radius = 0.07
-        self.body_height = 1.5
-        self.body_height = 1.5
-        self.body_width = 0.6
-        self.thigh_length = 1
-        self.shin_length = 1
+        self.head_radius = 1 * ratio
+        self.eye_radius = 0.15 * ratio
+        self.pupil_radius = 0.07 * ratio
+        self.body_height = 1.5 * ratio
+        self.body_height = 1.5 * ratio
+        self.body_width = 0.6 * ratio
+        self.thigh_length = 1 * ratio
+        self.shin_length = 1 * ratio
+        self.arm_length = 1 * ratio
+        self.ratio = ratio
         self.bodies = []
         self.head = PhysicalCircle(radius=self.head_radius, color=BLUE, fill_opacity=0.7)
         self.left_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
-            self.head.get_center() + LEFT * 0.4 + UP * 0.4)
+            self.head.get_center() + LEFT * 0.4 * ratio + UP * 0.4 * ratio)
         self.right_eye = Circle(radius=self.eye_radius, color=WHITE, fill_opacity=1).move_to(
-            self.head.get_center() + RIGHT * 0.4 + UP * 0.4)
+            self.head.get_center() + RIGHT * 0.4 * ratio + UP * 0.4 * ratio)
         self.left_pupil = Circle(radius=self.pupil_radius, color=BLACK, fill_opacity=1).move_to(
-            self.left_eye.get_center() + LEFT * 0.05)
+            self.left_eye.get_center() + LEFT * 0.05 * ratio)
         self.right_pupil = Circle(radius=self.pupil_radius, color=BLACK, fill_opacity=1).move_to(
-            self.right_eye.get_center())
-        self.mouth = Line(start=LEFT * 0.4, end=RIGHT * 0.4, color=BLACK).move_to(
-            self.head.get_center() + DOWN * 0.2)
-        self.smile_mouth = Arc(radius=0.4, start_angle=-PI * 2 / 3, angle=PI / 2, color=BLACK)
+            self.right_eye.get_center() + RIGHT * 0.05 * ratio)
+        self.mouth = Line(start=LEFT * 0.4 * ratio, end=RIGHT * 0.4 * ratio, color=BLACK).move_to(
+            self.head.get_center() + DOWN * 0.2 * ratio)
+        self.smile_mouth = Arc(radius=0.4 * ratio, start_angle=-PI * 2 / 3, angle=PI / 2, color=BLACK)
 
         self.body = PhysicalRoundedRectangle(width=self.body_width, height=self.body_height, color=BLUE, fill_opacity=0.7,
-                                     corner_radius=0.3).move_to(
+                                     corner_radius=0.3*ratio).move_to(
             self.head.get_center() + DOWN * (self.head_radius + self.body_height / 2 + 0.05))
 
 
-        self.left_arm = Limb(start=LEFT * 0.6, end=LEFT * 1.2 + DOWN * 0.5, is_left=True, color=BLUE).shift(DOWN * 1)
-        self.right_arm = Limb(start=RIGHT * 0.6, end=RIGHT * 1.2 + DOWN * 0.5, is_left=False, color=BLUE).shift(
-            DOWN * 1)
-        self.left_leg = Leg(start=self.body.get_corner(DL) + RIGHT * 0.1, thigh_length=self.thigh_length,
+        self.left_arm = Limb(start=self.body.get_corner(UL) + 0.6 * ratio * LEFT,
+                             end= self.body.get_corner(UL) + 1.2 * ratio * LEFT  + DOWN * 0.5 * ratio,
+                             is_left=True, color=BLUE)
+        self.right_arm = Limb(start=self.body.get_corner(UR) + 0.6 * ratio * RIGHT,
+                             end= self.body.get_corner(UR) + 1.2 * ratio * RIGHT  + DOWN * 0.5 * ratio,
+                             is_left=True, color=BLUE)
+        self.left_leg = Leg(start=self.body.get_corner(DL) + RIGHT * 0.1 * ratio, thigh_length=self.thigh_length,
                             shin_length=self.shin_length,
                             right=True, color=BLUE)
-        self.right_leg = Leg(start=self.body.get_corner(DR) + LEFT * 0.1, thigh_length=self.thigh_length,
+        self.right_leg = Leg(start=self.body.get_corner(DR) + LEFT * 0.1 * ratio, thigh_length=self.thigh_length,
                              shin_length=self.shin_length,
                              right=False, color=BLUE)
 
@@ -80,8 +85,8 @@ class Man(object):
             obj.move_to(obj.get_center() + DOWN * drop[1])
 
     def walk_left(self):
-        self.left_pupil.move_to(self.left_eye.get_center() + LEFT * 0.05)
-        self.right_pupil.move_to(self.right_eye.get_center() + LEFT * 0.05)
+        self.left_pupil.move_to(self.left_eye.get_center() + LEFT * 0.05 * self.ratio)
+        self.right_pupil.move_to(self.right_eye.get_center() + LEFT * 0.05 * self.ratio)
         self.me.add_updater(self.body_walk_move_left)
         self.left_leg.walk_left()
         self.right_leg.walk_left()
@@ -94,8 +99,8 @@ class Man(object):
         self.right_leg.stop_walk_left()
 
     def walk_right(self):
-        self.left_pupil.move_to(self.left_eye.get_center() + RIGHT * 0.05)
-        self.right_pupil.move_to(self.right_eye.get_center() + RIGHT * 0.05)
+        self.left_pupil.move_to(self.left_eye.get_center() + RIGHT * 0.05 * self.ratio)
+        self.right_pupil.move_to(self.right_eye.get_center() + RIGHT * 0.05 * self.ratio)
         self.me.add_updater(self.body_walk_move_right)
         self.left_leg.walk_right()
         self.right_leg.walk_right()

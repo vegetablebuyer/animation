@@ -1,26 +1,31 @@
 from manim import *
-from manim.utils.color.XKCD import BROWN
 
 
-class A(Scene):
+class CrescentMoon(Scene):
     def construct(self):
-        # 绘制贯穿屏幕的线
-        line = Line(start=LEFT * config.frame_width / 2, end=RIGHT * config.frame_width / 2)
-        line.set_y(-1)  # 将线的位置设置为屏幕下方一定高度
-        line.set_color(WHITE)
 
-        # 绘制线以下的区域（模拟土地）
-        land = Polygon(
-            (-1 * config.frame_width / 2, line.get_y(), 0),  # 左下角
-            (1 * config.frame_width / 2, line.get_y(), 0),  # 右下角
-            (1 * config.frame_width / 2, -config.frame_height / 2, 0),  # 右上角
-            (-1 * config.frame_width / 2, -config.frame_height / 2, 0),  # 左上角
-        )
-        land.set_fill(BROWN, opacity=1)  # 设置土地颜色
+        full_circle = Circle(radius=0.5, color=YELLOW, fill_opacity=1)
 
-        # 添加到场景
-        self.add(land, line)
+        cutout_circle = Circle(radius=0.5, color=BLACK, fill_opacity=1).move_to(
+            full_circle.get_center() + RIGHT * full_circle.radius * 0.5)
 
+        crescent_moon = Difference(full_circle, cutout_circle, fill_opacity=0.5).set_color(LIGHTER_GRAY).move_to(
+            ORIGIN + config.frame_width/2 * LEFT + UP * 2 )
 
-        # 停留以观察最终效果
+        self.add(crescent_moon)
+        def leaning_updater(mobject, dt):
+
+            lean_strength = 0.05
+            for point in mobject.get_points():
+                x, y, z = point
+                point[1] = y + lean_strength * x
+
+        self.play(crescent_moon.animate.move_to(ORIGIN[0] + crescent_moon.get_center()*UP), run_time=1)
+        crescent_moon.add_updater(leaning_updater)
+        self.wait(0.5)
+
+        crescent_moon.remove_updater(leaning_updater)
+
         self.wait(2)
+
+

@@ -35,7 +35,7 @@ class RainScene(Scene):
         self.wait(2)
 
 
-class ManWalkingInRain(Scene):
+class ManWalkingInRain(MovingCameraScene):
     def construct(self):
         space = PhysicalSpace(self, 1 / config.frame_rate)
         self.add(space)
@@ -70,13 +70,15 @@ class ManWalkingInRain(Scene):
 
         main_role.walk_left()
         self.wait(5)
-
+        self.camera.frame.save_state()
+        self.play(self.camera.frame.animate.move_to(main_role.head).set(width=main_role.head.width * 4))
         main_role.stop_walk_left()
         main_role.stand_straight()
         self.wait(2)
 
         main_role.walk_right()
         self.wait(5)
+        self.play(Restore(self.camera.frame))
         main_role.stop_walk_right()
         main_role.stand_straight()
         self.wait(2)

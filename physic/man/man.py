@@ -1,4 +1,8 @@
 
+import numpy as np
+
+from manim.typing import Vector3D
+
 from physic.man.leg import Leg
 from physic.physic_mobject import *
 from physic.man.limb import Limb
@@ -63,6 +67,54 @@ class Man(object):
             self.bodies.append(body)
         for body in self.right_leg.bodies:
             self.bodies.append(body)
+
+    def face_front(self):
+        self.left_eye.move_to(
+            self.head.get_center() + LEFT * 0.4 * self.ratio + UP * 0.4 * self.ratio)
+        self.right_eye.move_to(
+            self.head.get_center() + RIGHT * 0.4 * self.ratio + UP * 0.4 * self.ratio)
+        self.left_pupil.move_to(
+            self.left_eye.get_center() + LEFT * 0.05 * self.ratio)
+        self.right_pupil.move_to(
+            self.right_eye.get_center() + RIGHT * 0.05 * self.ratio)
+        self.mouth = Line(start=LEFT * 0.4 * ratio, end=RIGHT * 0.4 * ratio, color=BLACK).move_to(
+            self.head.get_center() + DOWN * 0.2 * ratio)
+
+    def face_back(self):
+        return
+
+    def turn(self, direction: Vector3D):
+        if direction is not RIGHT and direction is not LEFT:
+            return
+        self.left_eye.move_to(
+            self.head.get_center() + direction * 0.4 * self.ratio + UP * 0.4 * self.ratio)
+        self.right_eye.move_to(
+            self.head.get_center() + direction * 0.4 * self.ratio + UP * 0.4 * self.ratio)
+
+        self.left_pupil.move_to(
+            self.left_eye.get_center() + direction * 0.05 * self.ratio)
+        self.right_pupil.move_to(
+            self.right_eye.get_center() + direction * 0.05 * self.ratio)
+
+        start_point = self.head.get_center() + DOWN * 0.2 * self.ratio + direction * 0.4 * self.ratio
+        x0, y0, z0 = start_point
+        cx, cy, _ = self.head.get_center()
+        a = self.head_radius ** 2 - (y0 - cy) ** 2
+        if a < 0:
+            a = 0
+        if direction is RIGHT:
+            end_x = cx + np.sqrt(a)
+        else:
+            end_x = cx - np.sqrt(a)
+        end_point = np.array([end_x, y0, 0])
+        self.mouth.put_start_and_end_on(start_point, end_point)
+
+
+    def turn_right(self):
+        self.turn(RIGHT)
+
+    def turn_left(self):
+        self.turn(LEFT)
 
     def body_walk_move_left(self, obj, dt):
         angle = 0.01
